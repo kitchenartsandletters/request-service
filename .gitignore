@@ -34,3 +34,6 @@ env/
 
 # Supabase
 .supabase/
+
+#.env
+backend/.env
