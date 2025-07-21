@@ -20,7 +20,8 @@ async def create_interest(request: InterestRequest):
         )
         return {"success": True, "data": result}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print("Error inserting interest:", e)
+        raise HTTPException(status_code=500, detail="Failed to record interest.")
 
 @router.get("/interest")
 async def get_interest_entries(token: str = ""):

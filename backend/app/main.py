@@ -6,7 +6,9 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://admin.kitchenartsandletters.com"],
+    allow_origins=["https://admin.kitchenartsandletters.com",
+                   "https://www.kitchenartsandletters.com"
+                   ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
