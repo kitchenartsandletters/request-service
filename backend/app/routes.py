@@ -10,7 +10,7 @@ class InterestRequest(BaseModel):
     product_id: int
     product_title: str
 
-@router.post("/api/interest")
+@router.post("/interest")
 async def create_interest(request: InterestRequest):
     try:
         result = insert_interest(
@@ -22,7 +22,7 @@ async def create_interest(request: InterestRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/api/interest")
+@router.get("/interest")
 async def get_interest_entries(token: str = ""):
     if token != os.getenv("VITE_ADMIN_TOKEN"):
         raise HTTPException(status_code=403, detail="Invalid token")
