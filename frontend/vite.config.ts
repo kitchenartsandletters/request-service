@@ -7,15 +7,6 @@ const __dirname = (await import('node:path')).dirname(__filename);
 
 export default defineConfig({
   plugins: [react()],
-  server: {
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-        secure: false,
-      },
-    },
-  },
   resolve: {
     alias: {
       '@': (await import('node:path')).resolve(__dirname, './src'),

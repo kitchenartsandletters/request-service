@@ -8,6 +8,8 @@
     "start": "serve -l $PORT dist"
   },
   "dependencies": {
+    "express": "^5.1.0",
+    "http-proxy-middleware": "^3.0.5",
     "react": "^18.x",
     "react-dom": "^18.x",
     "vite": "^7.0.5"
