@@ -12,24 +12,24 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 4173;
-const BACKEND_URL = process.env.BACKEND_URL; // Get directly, will validate
+const VITE_API_BASE_URL = process.env.VITE_API_BASE_URL; // Get directly, will validate
 
-// Validate BACKEND_URL early
-if (!BACKEND_URL) {
-  console.error('❌ ERROR: BACKEND_URL is not set in your .env file.');
+// Validate VITE_API_BASE_URL early
+if (!VITE_API_BASE_URL) {
+  console.error('❌ ERROR: VITE_API_BASE_URL is not set in your .env file.');
   process.exit(1);
 }
 
 try {
-  new URL(BACKEND_URL); // Validate if it's a valid URL format
+  new URL(VITE_API_BASE_URL); // Validate if it's a valid URL format
 } catch (err) {
-  console.error(`❌ ERROR: Invalid BACKEND_URL "${BACKEND_URL}". Please ensure it's a valid URL.`);
+  console.error(`❌ ERROR: Invalid VITE_API_BASE_URL "${VITE_API_BASE_URL}". Please ensure it's a valid URL.`);
   console.error('[DETAILS]', err.message);
   process.exit(1);
 }
 
-// Log the resolved BACKEND_URL for debugging
-console.log(`[INFO] Resolved BACKEND_URL: ${BACKEND_URL}`);
+// Log the resolved VITE_API_BASE_URL for debugging
+console.log(`[INFO] Resolved VITE_API_BASE_URL: ${VITE_API_BASE_URL}`);
 
 // Serve static files from the 'dist' directory
 app.use(express.static(path.resolve(__dirname, 'dist')));
@@ -37,7 +37,7 @@ console.log(`[INFO] Serving static files from: ${path.resolve(__dirname, 'dist')
 
 try {
   const apiProxy = createProxyMiddleware({
-    target: BACKEND_URL,
+    target: VITE_API_BASE_URL,
     changeOrigin: true,
     // Using a function for pathRewrite for more explicit control and debugging
     pathRewrite: function (path, req) {
@@ -56,7 +56,7 @@ try {
   });
 
   app.use('/api', apiProxy);
-  console.log('[INFO] Proxy initialized for /api with target:', BACKEND_URL);
+  console.log('[INFO] Proxy initialized for /api with target:', VITE_API_BASE_URL);
 } catch (err) {
   console.error('[PROXY INIT ERROR] Failed to initialize proxy:', err.message);
   // Log the full error stack for more context if it's not a URL validation issue
