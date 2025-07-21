@@ -10,7 +10,7 @@ class InterestRequest(BaseModel):
     product_id: int
     product_title: str
 
-@router.post("/interest")
+@router.api_route("/interest", methods=["POST", "OPTIONS"])
 async def create_interest(request: InterestRequest):
     try:
         result = insert_interest(
