@@ -31,6 +31,22 @@ try {
 // Log the resolved VITE_API_BASE_URL for debugging
 console.log(`[INFO] Resolved VITE_API_BASE_URL: ${VITE_API_BASE_URL}`);
 
+
+// Basic authentication middleware
+app.use((req, res, next) => {
+  const auth = { login: process.env.ADMIN_USER, password: process.env.ADMIN_PASS };
+
+  const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
+  const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':');
+
+  if (login && password && login === auth.login && password === auth.password) {
+    return next();
+  }
+
+  res.set('WWW-Authenticate', 'Basic realm="admin"');
+  res.status(401).send('Authentication required.');
+});
+
 // Serve static files from the 'dist' directory
 app.use(express.static(path.resolve(__dirname, 'dist')));
 console.log(`[INFO] Serving static files from: ${path.resolve(__dirname, 'dist')}`);
