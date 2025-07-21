@@ -2,34 +2,75 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createProxyMiddleware } from 'http-proxy-middleware';
+import dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config({ path: path.resolve(process.cwd(), '.env') }); // Ensure correct path resolution
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+const PORT = process.env.PORT || 4173;
+const BACKEND_URL = process.env.BACKEND_URL; // Get directly, will validate
 
-if (!process.env.BACKEND_URL) {
-  console.warn('⚠️  BACKEND_URL is not set. Proxying /api requests to http://localhost:8000');
+// Validate BACKEND_URL early
+if (!BACKEND_URL) {
+  console.error('❌ ERROR: BACKEND_URL is not set in your .env file.');
+  process.exit(1);
 }
 
-const PORT = process.env.PORT || 4173;
+try {
+  new URL(BACKEND_URL); // Validate if it's a valid URL format
+} catch (err) {
+  console.error(`❌ ERROR: Invalid BACKEND_URL "${BACKEND_URL}". Please ensure it's a valid URL.`);
+  console.error('[DETAILS]', err.message);
+  process.exit(1);
+}
 
-// Serve static frontend
-app.use(express.static(path.join(__dirname, 'dist')));
+// Log the resolved BACKEND_URL for debugging
+console.log(`[INFO] Resolved BACKEND_URL: ${BACKEND_URL}`);
 
-// Optional: Proxy /api to backend Railway service
-app.use('/api', createProxyMiddleware({
-  target: process.env.BACKEND_URL || 'http://localhost:8000',
-  changeOrigin: true,
-  logLevel: 'debug',
-}));
+// Serve static files from the 'dist' directory
+app.use(express.static(path.resolve(__dirname, 'dist')));
+console.log(`[INFO] Serving static files from: ${path.resolve(__dirname, 'dist')}`);
 
-// Fallback to index.html for SPA
-app.get('*', (req, res) => {
+try {
+  const apiProxy = createProxyMiddleware({
+    target: BACKEND_URL,
+    changeOrigin: true,
+    // Using a function for pathRewrite for more explicit control and debugging
+    pathRewrite: function (path, req) {
+      const newPath = path.replace(/^\/api/, '');
+      console.log(`[PROXY REWRITE] Original path: ${path} -> Rewritten path: ${newPath}`);
+      return newPath;
+    },
+    logLevel: 'debug', // Keep debug level for detailed proxy logs
+    onProxyReq: (proxyReq, req, res) => {
+      console.log(`[PROXY REQ] Proxying ${req.method} ${req.originalUrl} to ${proxyReq.protocol}//${proxyReq.host}${proxyReq.path}`);
+    },
+    onError: (err, req, res, target) => {
+      console.error(`[PROXY ERROR] Proxy error for request ${req.method} ${req.originalUrl} to ${target}:`, err);
+      res.status(500).send('Proxy error');
+    }
+  });
+
+  app.use('/api', apiProxy);
+  console.log('[INFO] Proxy initialized for /api with target:', BACKEND_URL);
+} catch (err) {
+  console.error('[PROXY INIT ERROR] Failed to initialize proxy:', err.message);
+  // Log the full error stack for more context if it's not a URL validation issue
+  console.error('[DETAILS]', err);
+  process.exit(1);
+}
+
+// Catch-all to serve index.html for all other routes (for client-side routing)
+app.get('/*', (req, res) => {
   res.sendFile(path.resolve(__dirname, 'dist', 'index.html'));
+  console.log(`[INFO] Serving index.html for ${req.url}`);
 });
 
-// Start server
+// Start the server
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT} — serving static files from /dist`);
 });
