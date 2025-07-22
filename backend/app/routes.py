@@ -1,6 +1,7 @@
 import os
 from fastapi import APIRouter, Request, HTTPException
 from pydantic import BaseModel
+from fastapi.responses import Response
 from app.supabase_client import insert_interest, supabase
 
 router = APIRouter()
@@ -13,7 +14,12 @@ class InterestRequest(BaseModel):
 @router.api_route("/interest", methods=["POST", "OPTIONS"])
 async def create_interest(req: Request):
     if req.method == "OPTIONS":
-        return {}
+        response = Response()
+        response.headers["Access-Control-Allow-Origin"] = "https://www.kitchenartsandletters.com"
+        response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+        response.headers["Access-Control-Max-Age"] = "86400"
+        return response
 
     try:
         body = await req.json()
