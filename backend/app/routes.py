@@ -11,8 +11,13 @@ class InterestRequest(BaseModel):
     product_title: str
 
 @router.api_route("/interest", methods=["POST", "OPTIONS"])
-async def create_interest(request: InterestRequest):
+async def create_interest(req: Request):
+    if req.method == "OPTIONS":
+        return {}
+
     try:
+        body = await req.json()
+        request = InterestRequest(**body)
         result = insert_interest(
             email=request.email,
             product_id=request.product_id,
