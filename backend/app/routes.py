@@ -2,7 +2,7 @@ import os
 from fastapi import APIRouter, Request, HTTPException
 from pydantic import BaseModel
 from fastapi.responses import Response
-from app.supabase_client import insert_interest, supabase
+from app.supabase_client import insert_interest, supabase, update_status
 
 router = APIRouter()
 
@@ -10,26 +10,21 @@ class InterestRequest(BaseModel):
     email: str
     product_id: int
     product_title: str
-    isbn: str
+
+class StatusUpdateRequest(BaseModel):
+    request_id: str
+    new_status: str
+    changed_by: str | None = None  # optional, can default to 'system' in client
 
 @router.api_route("/interest", methods=["POST", "OPTIONS"])
 async def create_interest(req: Request):
-    if req.method == "OPTIONS":
-        response = Response()
-        response.headers["Access-Control-Allow-Origin"] = "https://www.kitchenartsandletters.com"
-        response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type"
-        response.headers["Access-Control-Max-Age"] = "86400"
-        return response
-
     try:
         body = await req.json()
         request = InterestRequest(**body)
         result = insert_interest(
             email=request.email,
             product_id=request.product_id,
-            product_title=request.product_title,
-            isbn=request.isbn
+            product_title=request.product_title
         )
         return {"success": True, "data": result}
     except Exception as e:
@@ -42,7 +37,30 @@ async def get_interest_entries(token: str = ""):
         raise HTTPException(status_code=403, detail="Invalid token")
 
     try:
-        result = supabase.table("product_interest_requests").select("cr_id, product_title, isbn, product_id, email, created_at").order("created_at", desc=True).limit(100).execute()
+        result = supabase.table("product_interest_requests") \
+            .select("*") \
+            .order("created_at", desc=True) \
+            .limit(100) \
+            .execute()
         return {"success": True, "data": result.data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/update_status")
+async def update_request_status(payload: StatusUpdateRequest, token: str = ""):
+    if token != os.getenv("VITE_ADMIN_TOKEN"):
+        raise HTTPException(status_code=403, detail="Invalid token")
+
+    try:
+        # Default to "system" if no changed_by is provided
+        actor = payload.changed_by if payload.changed_by else "system"
+        result = update_status(
+            payload.request_id,
+            payload.new_status,
+            changed_by=actor,
+            source="api",
+            optimistic=False
+        )
+        return {"success": True, "data": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

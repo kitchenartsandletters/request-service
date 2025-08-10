@@ -1,0 +1,17 @@
+.
+├── README.md
+├── backend
+│   ├── app
+│   │   ├── __init__.py
+│   │   ├── __pycache__
+│   │   ├── main.py
+│   │   ├── routes.py
+│   │   └── supabase_client.py
+│   └── requirements.txt
+├── file-structure.txt
+├── package-lock.json
+├── package.json
+└── supabase
+    └── schema.sql
+
+5 directories, 10 files
