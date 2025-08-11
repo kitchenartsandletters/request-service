@@ -1,6 +1,7 @@
 import os
 from supabase import create_client, Client
 from dotenv import load_dotenv
+import uuid
 
 load_dotenv()
 
@@ -9,11 +10,19 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-def insert_interest(email: str, product_id: int, product_title: str):
+def insert_interest(email: str, product_id: int, product_title: str, isbn: str = None):
+    """
+    Insert a new interest request into product_interest_requests.
+    Automatically generates a CR ID and preserves ISBN if provided.
+    """
+    cr_id = f"CR{uuid.uuid4().hex[:8].upper()}"
+
     response = supabase.table("product_interest_requests").insert({
         "email": email,
         "product_id": product_id,
-        "product_title": product_title
+        "product_title": product_title,
+        "isbn": isbn,
+        "cr_id": cr_id
     }).execute()
 
     if not response.data:
@@ -34,6 +43,14 @@ def update_status(request_id: str, new_status: str, changed_by: str = "system", 
     Atomically update the status in product_interest_requests and log the change
     in status_change_log via the update_status_with_log RPC function.
     """
+    print("📤 Calling RPC update_status_with_log with params:", {
+        "req_id": request_id,
+        "new_stat": new_status,
+        "actor": changed_by,
+        "src": source,
+        "is_optimistic": optimistic
+    })
+
     resp = supabase.rpc(
         "update_status_with_log",
         {
@@ -45,7 +62,11 @@ def update_status(request_id: str, new_status: str, changed_by: str = "system", 
         }
     ).execute()
 
+    # Debug log raw response from Supabase
+    print("📥 Raw Supabase RPC response:", resp)
+
     if getattr(resp, "error", None):
+        print("❌ Supabase RPC error:", resp.error)
         raise Exception(f"Status update failed: {resp.error}")
     
     return {"success": True}

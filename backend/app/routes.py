@@ -10,11 +10,12 @@ class InterestRequest(BaseModel):
     email: str
     product_id: int
     product_title: str
+    isbn: str | None = None
 
 class StatusUpdateRequest(BaseModel):
     request_id: str
     new_status: str
-    changed_by: str | None = None  # optional, can default to 'system' in client
+    changed_by: str | None = None
 
 @router.api_route("/interest", methods=["POST", "OPTIONS"])
 async def create_interest(req: Request):
@@ -24,7 +25,8 @@ async def create_interest(req: Request):
         result = insert_interest(
             email=request.email,
             product_id=request.product_id,
-            product_title=request.product_title
+            product_title=request.product_title,
+            isbn=request.isbn
         )
         return {"success": True, "data": result}
     except Exception as e:
@@ -38,7 +40,7 @@ async def get_interest_entries(token: str = ""):
 
     try:
         result = supabase.table("product_interest_requests") \
-            .select("*") \
+            .select("id, product_id, product_title, email, isbn, cr_id, status, cr_seq, created_at") \
             .order("created_at", desc=True) \
             .limit(100) \
             .execute()
@@ -52,8 +54,13 @@ async def update_request_status(payload: StatusUpdateRequest, token: str = ""):
         raise HTTPException(status_code=403, detail="Invalid token")
 
     try:
+        # Debug: incoming payload
+        print("📥 Incoming status update payload:", payload.dict())
+
         # Default to "system" if no changed_by is provided
         actor = payload.changed_by if payload.changed_by else "system"
+
+        # Call the RPC
         result = update_status(
             payload.request_id,
             payload.new_status,
@@ -61,6 +68,11 @@ async def update_request_status(payload: StatusUpdateRequest, token: str = ""):
             source="api",
             optimistic=False
         )
+
+        # Debug: RPC call result
+        print("✅ RPC result:", result)
+
         return {"success": True, "data": result}
     except Exception as e:
+        print("❌ Error in update_request_status:", str(e))
         raise HTTPException(status_code=500, detail=str(e))
