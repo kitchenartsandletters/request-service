@@ -50,14 +50,24 @@ async def get_interest_entries(token: str = "", collection_filter: str | None = 
             .order("created_at", desc=True) \
             .limit(100)
 
-        # Normalize and apply collection filter
-        cf = (collection_filter or "all").lower()
+        # Normalize and apply collection filter (supports: All | OOP | Frontlist)
+        cf = (collection_filter or "All").strip().lower()
+
         if cf == "oop":
-            # Rows whose handles overlap with either Out-of-Print handle
-            q = q.overlaps("shopify_collection_handles", OOP_HANDLES)
+            # Include items overlapping OOP collections OR (no/empty collections AND title starts with "OP: ")
+            # Uses PostgREST or() with grouped and() clauses
+            q = q.or_(
+                "shopify_collection_handles.ov.{out-of-print-offers,out-of-print-offers-1},"
+                "and(or(shopify_collection_handles.is.null,shopify_collection_handles.eq.{}),product_title.ilike.OP:%)"
+            )
+
         elif cf == "frontlist":
-            # Rows whose handles do NOT overlap with the Out-of-Print handles
-            q = q.not_.overlaps("shopify_collection_handles", OOP_HANDLES)
+            # Include items NOT overlapping OOP and NOT starting with "OP: ..."
+            # OR (no/empty collections AND NOT starting with "OP: ...")
+            q = q.or_(
+                "and(shopify_collection_handles.not.ov.{out-of-print-offers,out-of-print-offers-1},product_title.not.ilike.OP:%)",
+                "and(or(shopify_collection_handles.is.null,shopify_collection_handles.eq.{}),product_title.not.ilike.OP:%)"
+            )
         # else: "all" -> no additional filter
 
         result = q.execute()
