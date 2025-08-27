@@ -39,35 +39,57 @@ async def create_interest(req: Request):
         raise HTTPException(status_code=500, detail="Failed to record interest.")
 
 @router.get("/interest")
-async def get_interest_entries(token: str = "", collection_filter: str | None = None):
+async def get_interest_entries(
+    token: str = "",
+    collection_filter: str | None = None,
+    page: int = 1,
+    limit: int = 100,
+):
     if token != os.getenv("VITE_ADMIN_TOKEN"):
         raise HTTPException(status_code=403, detail="Invalid token")
+
+    # Clamp and compute pagination
+    try:
+        page = int(page) if page is not None else 1
+    except Exception:
+        page = 1
+    try:
+        limit = int(limit) if limit is not None else 100
+    except Exception:
+        limit = 100
+    if page < 1:
+        page = 1
+    if limit < 1:
+        limit = 1
+    if limit > 200:
+        limit = 200
+    offset = (page - 1) * limit
+    range_to = offset + limit - 1
 
     try:
         # Base query
         q = supabase.table("product_interest_requests") \
             .select("id, product_id, product_title, email, customer_name, isbn, cr_id, status, cr_seq, created_at, shopify_collection_handles") \
             .order("created_at", desc=True) \
-            .limit(100)
+            .range(offset, range_to)
 
-        # Normalize and apply collection filter (supports: All | OOP | Frontlist)
-        cf = (collection_filter or "All").strip().lower()
+        # Normalize: accept "All", "OOP"/"Out-of-Print" variants, and "Frontlist"
+        raw_cf = (collection_filter or "All").strip().lower()
+        cf = raw_cf.replace(" ", "-")  # spaces -> hyphen
+        # Map common variants
+        if cf in {"oop", "out-of-print", "out_of_print"}:
+            cf = "oop"
+        elif cf in {"frontlist"}:
+            cf = "frontlist"
+        else:
+            cf = "all"
 
         if cf == "oop":
-            # Include items overlapping OOP collections OR (no/empty collections AND title starts with "OP: ")
-            # Uses PostgREST or() with grouped and() clauses
-            q = q.or_(
-                "shopify_collection_handles.ov.{out-of-print-offers,out-of-print-offers-1},"
-                "and(or(shopify_collection_handles.is.null,shopify_collection_handles.eq.{}),product_title.ilike.OP:%)"
-            )
-
+            # Rows whose handles overlap with either Out-of-Print handle
+            q = q.overlaps("shopify_collection_handles", OOP_HANDLES)
         elif cf == "frontlist":
-            # Include items NOT overlapping OOP and NOT starting with "OP: ..."
-            # OR (no/empty collections AND NOT starting with "OP: ...")
-            q = q.or_(
-                "and(shopify_collection_handles.not.ov.{out-of-print-offers,out-of-print-offers-1},product_title.not.ilike.OP:%)",
-                "and(or(shopify_collection_handles.is.null,shopify_collection_handles.eq.{}),product_title.not.ilike.OP:%)"
-            )
+            # Rows whose handles do NOT overlap with the Out-of-Print handles
+            q = q.not_.overlaps("shopify_collection_handles", OOP_HANDLES)
         # else: "all" -> no additional filter
 
         result = q.execute()
