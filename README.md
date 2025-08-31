@@ -140,8 +140,6 @@ VITE_API_BASE_URL=http://localhost:8000
 
 ⸻
 
-🧩 Next Steps
-
 ✅ Recently Completed
 - Added Shopify frontend **customer name** field alongside email; payload now includes `customer_name`.
 - Backend updated to accept and store `customer_name`; UI shows a **Customer** column with sorting/search support.
@@ -153,7 +151,6 @@ VITE_API_BASE_URL=http://localhost:8000
 - Implemented **pagination** (`page`, `limit`) in backend + UI; page summary (`X–Y of Z`) now displays; dropdown filter integrates with pagination.
 - Added a **pagination selector** (20/50/100) and persist selected page size + collection filter via localStorage.
 - Advanced filtering: OOP definition in sync (tags `op`/`pastop`, OOP collections, or title starting with "OP: ").
-- Statuses changed to New → In Progress → Request Filed → Complete
 
 📌 Next Steps
 - UI polish: scale down table font size, explore per-option color cues for the status dropdown.
