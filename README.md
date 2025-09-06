@@ -211,7 +211,7 @@ STEP-BY-STEP USAGE
 BULK ADDING
 
 If you have multiple barcodes or product IDs to add:
-- Paste one per line into the input box.
+- You can paste multiple barcodes or product IDs separated by commas, spaces, or line breaks.
 - The system will iterate through them and attempt to add each.
 - If a barcode is invalid or does not resolve to a product, it will be skipped.
 
