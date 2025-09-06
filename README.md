@@ -154,6 +154,10 @@ VITE_API_BASE_URL=http://localhost:8000
 - Added a **pagination selector** (20/50/100) and persist selected page size + collection filter via localStorage.
 - Advanced filtering: OOP definition in sync (tags `op`/`pastop`, OOP collections, or title starting with "OP: ").
 - Statuses changed to New → In Progress → Request Filed → Complete
+- Added full-featured **Blacklist Manager**:
+  - Allows admin to search Shopify for a product by barcode or ID, preview results, and add to a server-side blacklist table.
+  - Exporting the blacklist generates a Liquid snippet used by the Online Store to conditionally suppress the request form on select product pages.
+  - Snippet injection now writes directly to the live theme's `main-product.liquid`, replacing or inserting the assignment logic.
 
 📌 Next Steps
 - UI polish: scale down table font size, explore per-option color cues for the status dropdown.
@@ -166,3 +170,49 @@ VITE_API_BASE_URL=http://localhost:8000
 - Notifications: Slack/email on new submissions and/or status changes.
 - Validation: tighten whitespace-only name handling in Shopify UI and optionally enforce server-side sanitization.
 - Data retention & privacy: implement automatic archiving/deletion (e.g., delete open requests after 12 months; archive after fulfillment) and update Privacy Policy accordingly.
+
+⸻
+
+Blacklist Manager Guide
+
+The Blacklist Manager allows staff to suppress the "Request Form" on product pages of items that are no longer relevant for restock. This is especially useful for permanently discontinued titles, one-time sets, or ephemeral imports.
+
+HOW IT WORKS
+- Barcodes and Product IDs are matched against Shopify's live catalog.
+- If a match is found, it is added to the blacklist table.
+- Clicking "Export to Shopify" rewrites the blacklisted barcodes in the live theme.
+- That snippet is referenced on product pages to determine whether to show or hide the Request Form.
+
+STEP-BY-STEP USAGE
+
+1. Navigate to the Blacklist tab in the Admin Dashboard. It is located within the Request Service menu item.
+   - 📸 [Insert screenshot of tab UI]
+
+2. In the input box, enter a barcode or Shopify Product ID to search.
+   - 📸 [Insert screenshot showing input usage]
+
+3. Preview product details returned by Shopify.
+   - Product Title
+   - Author (SKU field)
+   - Handle
+   - Product ID
+   - Barcode
+
+4. Click “Add to Blacklist” to save the entry to the database.
+   - 📸 [Insert screenshot of added row in table]
+
+5. Once your list is built, click “Export to Shopify”.
+   - This will:
+     - Update blacklisted barcodes in the live theme.
+
+6. You should now see the request form hidden on blacklisted product pages.
+   - 📸 [Insert screenshot of suppressed form]
+
+BULK ADDING
+
+If you have multiple barcodes or product IDs to add:
+- Paste one per line into the input box.
+- The system will iterate through them and attempt to add each.
+- If a barcode is invalid or does not resolve to a product, it will be skipped.
+
+⚠️ Reminder: “Export to Shopify” must be clicked to publish changes to Shopify.
