@@ -182,37 +182,38 @@ HOW IT WORKS
 - If a match is found, it is added to the blacklist table.
 - Clicking "Export to Shopify" rewrites the blacklisted barcodes in the live theme.
 - That snippet is referenced on product pages to determine whether to show or hide the Request Form.
+- The logic is inserted directly into the live theme
 
 STEP-BY-STEP USAGE
 
 1. Navigate to the Blacklist tab in the Admin Dashboard. It is located within the Request Service menu item.
    - 📸 [Insert screenshot of tab UI]
 
-2. In the input box, enter a barcode or Shopify Product ID to search.
+2. In the input box, enter a barcode or Shopify Product ID to search (the entry field will accept either).
    - 📸 [Insert screenshot showing input usage]
 
-3. Preview product details returned by Shopify.
+3. Preview product details returned by Shopify in a modal before confirming.
    - Product Title
    - Author (SKU field)
    - Handle
    - Product ID
    - Barcode
 
-4. Click “Add to Blacklist” to save the entry to the database.
-   - 📸 [Insert screenshot of added row in table]
+4. Click “Confirm All” to save the entries to the database after previewing the products.
+   - 📸 [Insert screenshot of product add preview]
 
 5. Once your list is built, click “Export to Shopify”.
    - This will:
      - Update blacklisted barcodes in the live theme.
+   - 📸 [Insert screenshot of "Export" button]
 
 6. You should now see the request form hidden on blacklisted product pages.
-   - 📸 [Insert screenshot of suppressed form]
 
 BULK ADDING
 
 If you have multiple barcodes or product IDs to add:
-- You can paste multiple barcodes or product IDs separated by commas, spaces, or line breaks.
+- You can paste multiple barcodes or product IDs separated by commas, spaces, or newlines.
 - The system will iterate through them and attempt to add each.
 - If a barcode is invalid or does not resolve to a product, it will be skipped.
 
-⚠️ Reminder: “Export to Shopify” must be clicked to publish changes to Shopify.
+⚠️ Reminder: “Export to Shopify” must be clicked to publish changes to Shopify. This applies to adding or removing entries.
