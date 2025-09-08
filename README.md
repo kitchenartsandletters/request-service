@@ -158,6 +158,8 @@ VITE_API_BASE_URL=http://localhost:8000
   - Allows admin to search Shopify for a product by barcode or ID, preview results, and add to a server-side blacklist table.
   - Exporting the blacklist generates a Liquid snippet used by the Online Store to conditionally suppress the request form on select product pages.
   - Snippet injection now writes directly to the live theme's `main-product.liquid`, replacing or inserting the assignment logic.
+- Added **RightSidebar** component with support for dual-mode display (row-based details or Markdown doc viewer). Replaced ConfirmModal-based doc display with a persistent sidebar. Markdown viewer now supports image styling, GFM formatting (bullets, lists), and relative image paths using `@tailwindcss/typography`.
+- Improved RightSidebar: support click-outside and "Close" button to trigger slide-out animation.
 
 📌 Next Steps
 - UI polish: scale down table font size, explore per-option color cues for the status dropdown.
@@ -170,6 +172,7 @@ VITE_API_BASE_URL=http://localhost:8000
 - Notifications: Slack/email on new submissions and/or status changes.
 - Validation: tighten whitespace-only name handling in Shopify UI and optionally enforce server-side sanitization.
 - Data retention & privacy: implement automatic archiving/deletion (e.g., delete open requests after 12 months; archive after fulfillment) and update Privacy Policy accordingly.
+- Extract title dynamically from Markdown file and display in sidebar header.
 
 ⸻
 
@@ -187,10 +190,10 @@ HOW IT WORKS
 STEP-BY-STEP USAGE
 
 1. Navigate to the Blacklist tab in the Admin Dashboard. It is located within the Request Service menu item.
-   - 📸 [Insert screenshot of tab UI]
+![Tap UI](/docs-screenshots/blacklist-manager/tab-ui.gif)
 
 2. In the input box, enter a barcode or Shopify Product ID to search (the entry field will accept either).
-   - 📸 [Insert screenshot showing input usage]
+![Input Box](/docs-screenshots/blacklist-manager/input-box.gif)
 
 3. Preview product details returned by Shopify in a modal before confirming.
    - Product Title
@@ -200,12 +203,12 @@ STEP-BY-STEP USAGE
    - Barcode
 
 4. Click “Confirm All” to save the entries to the database after previewing the products.
-   - 📸 [Insert screenshot of product add preview]
+![Preview Modal](/docs-screenshots/blacklist-manager/preview-modal.gif)
 
 5. Once your list is built, click “Export to Shopify”.
+![Export to Shopify](/docs-screenshots/blacklist-manager/export-shopify.gif)
    - This will:
      - Update blacklisted barcodes in the live theme.
-   - 📸 [Insert screenshot of "Export" button]
 
 6. You should now see the request form hidden on blacklisted product pages.
 
