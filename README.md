@@ -160,6 +160,10 @@ VITE_API_BASE_URL=http://localhost:8000
   - Snippet injection now writes directly to the live theme's `main-product.liquid`, replacing or inserting the assignment logic.
 - Added **RightSidebar** component with support for dual-mode display (row-based details or Markdown doc viewer). Replaced ConfirmModal-based doc display with a persistent sidebar. Markdown viewer now supports image styling, GFM formatting (bullets, lists), and relative image paths using `@tailwindcss/typography`.
 - Improved RightSidebar: support click-outside and "Close" button to trigger slide-out animation.
+- Fixed search and filter so they now apply across the entire dataset, not just the current page.
+- Backend `/api/interest` updated with server-side filtering and pagination aware of filters.
+- Frontend now wires filters and search directly into backend fetch; local-only filtering removed.
+- Page reset on filter change now ensures dataset view is correct (always snaps to valid page).
 
 📌 Next Steps
 - UI polish: scale down table font size, explore per-option color cues for the status dropdown.
