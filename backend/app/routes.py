@@ -282,6 +282,8 @@ async def add_to_blacklist_debug(request: Request, token: str = ""):
 
         parsed_entries = []
         for entry_data in entries:
+            if "author" not in entry_data or entry_data["author"] is None:
+                entry_data["author"] = "Unknown"
             entry = BlacklistEntry(**entry_data)
             print("✅ Parsed entry:", entry.model_dump())
             parsed_entries.append(entry.model_dump())
