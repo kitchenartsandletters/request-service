@@ -6,9 +6,10 @@ from pydantic import BaseModel
 from fastapi.responses import Response
 from app.supabase_client import insert_interest, supabase, update_status, SHOP_URL, SHOPIFY_ACCESS_TOKEN, SHOPIFY_API_VERSION
 import re
-
+import logging
 
 router = APIRouter()
+logger = logging.getLogger("uvicorn.error")
 
 OOP_HANDLES = ["out-of-print-offers", "out-of-print-offers-1"]
 
@@ -160,7 +161,7 @@ async def get_interest_entries(
         if isinstance(sort_order, str) and sort_order.lower() == "asc":
             desc_flag = False
 
-        print("🔥 SORT DEBUG:", {"sort_field": sort_field, "resolved_field": field, "sort_order": sort_order, "desc_flag": desc_flag})
+        logger.info(f"🔥 SORT DEBUG: { {'sort_field': sort_field, 'resolved_field': field, 'sort_order': sort_order, 'desc_flag': desc_flag} }")
 
         # Apply ordering before pagination
         q = q.order(field, desc=desc_flag).range(offset, range_to)
