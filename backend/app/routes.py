@@ -151,7 +151,6 @@ async def get_interest_entries(
             "product_title",
             "email",
             "customer_name",
-            "isbn",
             "status",
             "cr_id",
         }
