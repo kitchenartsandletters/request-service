@@ -115,6 +115,8 @@ async def get_interest_entries(
     archived: str | None = None,
     page: int = 1,
     limit: int = 100,
+    sort_by: str | None = None,
+    sort_dir: str | None = None,
 ):
     if token != os.getenv("VITE_ADMIN_TOKEN"):
         raise HTTPException(status_code=403, detail="Invalid token")
@@ -152,20 +154,18 @@ async def get_interest_entries(
         else:
             cf = "all"
 
-        if cf == "op":
-            # Out-of-Print definition
-            q = q.or_(
-                "shopify_collection_handles.ov.{out-of-print-offers,out-of-print-offers-1},shopify_collections.ov.{Out-of-Print Offers,Past Out-of-Print Offers},product_tags.ov.{op,pastop},product_title.ilike.OP:%"
-            )
-        elif cf == "notop":
-            # Not-OP definition (title not OP and tags don't contain OP markers, accounting for null/empty)
-            q = q.or_(
-                "and(product_title.not.ilike.OP:%,product_tags.not.ov.{op,pastop}),and(product_title.not.ilike.OP:%,or(product_tags.is.null,product_tags.eq.{}))"
-            )
-        # else: "all" -> no additional filter
+        # Start building query
+        q = supabase.table("interest_requests").select("*")
+        q = apply_filters(q, archived_mode, cf, None)
 
-        # Finally, apply ordering and range (after all filters)
-        q = q.order("created_at", desc=True).range(offset, range_to)
+        # Sorting logic
+        if sort_by:
+            descending = sort_dir and sort_dir.lower() == "desc"
+            q = q.order(sort_by, desc=descending)
+        else:
+            q = q.order("created_at", desc=True)
+
+        q = q.range(offset, range_to)
 
         result = q.execute()
         return {"success": True, "data": result.data}
