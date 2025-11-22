@@ -160,10 +160,10 @@ async def get_interest_entries(
         if isinstance(sort_order, str) and sort_order.lower() == "asc":
             desc_flag = False
 
+        print("🔥 SORT DEBUG:", {"sort_field": sort_field, "resolved_field": field, "sort_order": sort_order, "desc_flag": desc_flag})
+
         # Apply ordering before pagination
         q = q.order(field, desc=desc_flag).range(offset, range_to)
-
-        print("🔥 SORT DEBUG:", sort_field, sort_order, "ALLOWED:", allowed_sort_fields)
 
         result = q.execute()
         return {"success": True, "data": result.data}
