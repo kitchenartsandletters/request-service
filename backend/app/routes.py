@@ -163,6 +163,8 @@ async def get_interest_entries(
         # Apply ordering before pagination
         q = q.order(field, desc=desc_flag).range(offset, range_to)
 
+        print("🔥 SORT DEBUG:", sort_field, sort_order, "ALLOWED:", allowed_sort_fields)
+
         result = q.execute()
         return {"success": True, "data": result.data}
     except Exception as e:
