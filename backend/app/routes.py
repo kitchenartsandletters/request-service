@@ -84,6 +84,8 @@ async def get_interest_entries(
     archived: str | None = None,
     page: int = 1,
     limit: int = 100,
+    sort_field: str = "created_at",
+    sort_order: str = "desc"
 ):
     if token != os.getenv("VITE_ADMIN_TOKEN"):
         raise HTTPException(status_code=403, detail="Invalid token")
@@ -143,8 +145,16 @@ async def get_interest_entries(
             )
         # else: "all" -> no additional filter
 
-        # Finally, apply ordering and range (after all filters)
-        q = q.order("created_at", desc=True).range(offset, range_to)
+        # Dynamic ordering (full-table sort support)
+        allowed_sort_fields = {
+            "created_at", "product_title", "email", "customer_name", "isbn", "status"
+        }
+        field = sort_field if sort_field in allowed_sort_fields else "created_at"
+        order_desc = sort_order.lower() != "asc"
+        q = q.order(field, desc=order_desc).range(offset, range_to)
+
+        # Previous hardcoded ordering removed
+        # q = q.order("created_at", desc=True).range(offset, range_to)
 
         result = q.execute()
         return {"success": True, "data": result.data}
