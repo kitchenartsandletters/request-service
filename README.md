@@ -56,6 +56,8 @@ GET /api/interest?token=YOUR_ADMIN_TOKEN
 Returns a list of recent interest submissions.
 Protected by token: must match VITE_ADMIN_TOKEN.
 
+- POST /api/blacklist/export_snippet — Uploads Liquid snippet to Shopify theme with blacklisted product IDs and barcodes.
+
 ⸻
 
 ⚠️ Key Debugging Fixes
@@ -68,6 +70,10 @@ Protected by token: must match VITE_ADMIN_TOKEN.
 	•	✅ FastAPI now includes CORS middleware to allow frontend-to-backend requests.
 	•	✅ All backend routes are mounted under /api prefix (/api/interest).
 	•	✅ Backend responds with JSON { success: true, data: [...] }, which is handled in the React frontend.
+	•	✅ Blacklist system fully refactored to use `product_id` as primary key, with `barcode` as optional secondary.
+	•	✅ Backend upsert logic skips null/empty barcodes to prevent DB constraint violations.
+	•	✅ Supabase `blacklisted_barcodes` table updated: removed `barcode` uniqueness constraint; composite uniqueness enforced via logic.
+	•	✅ Export logic now generates Liquid snippet for both `product_ids` and `barcodes` and injects directly into `main-product.liquid`.
 
 ⸻
 
@@ -121,6 +127,17 @@ https://outofstock-notify-production.up.railway.app
 
 ⸻
 
+**Snippet Export Integration (Shopify Theme Update)**
+- `POST /api/blacklist/export_snippet?token=...` generates and injects updated Liquid snippet into the live Shopify theme.
+- Updates both `snippets/blacklisted-barcodes.liquid` and `sections/main-product.liquid` to control visibility of the Request Form.
+- Product page behavior is now controlled via:
+  ```
+  {% assign blacklisted_product_ids = "..." | split: "," %}
+  {% assign blacklisted_barcodes = "..." | split: "," %}
+  ```
+
+⸻
+
 3. Local Development
 
 Backend (FastAPI)
@@ -160,6 +177,11 @@ VITE_API_BASE_URL=http://localhost:8000
   - Snippet injection now writes directly to the live theme's `main-product.liquid`, replacing or inserting the assignment logic.
 - Added **RightSidebar** component with support for dual-mode display (row-based details or Markdown doc viewer). Replaced ConfirmModal-based doc display with a persistent sidebar. Markdown viewer now supports image styling, GFM formatting (bullets, lists), and relative image paths using `@tailwindcss/typography`.
 - Improved RightSidebar: support click-outside and "Close" button to trigger slide-out animation.
+- Fixed search and filter so they now apply across the entire dataset, not just the current page.
+- Backend `/api/interest` updated with server-side filtering and pagination aware of filters.
+- Frontend now wires filters and search directly into backend fetch; local-only filtering removed.
+- Page reset on filter change now ensures dataset view is correct (always snaps to valid page).
+- 🧪 Add tests for export snippet functionality and error handling (invalid token, missing theme, malformed data).
 
 📌 Next Steps
 - UI polish: scale down table font size, explore per-option color cues for the status dropdown.
@@ -220,3 +242,18 @@ If you have multiple barcodes or product IDs to add:
 - If a barcode is invalid or does not resolve to a product, it will be skipped.
 
 ⚠️ Reminder: “Export to Shopify” must be clicked to publish changes to Shopify. This applies to adding or removing entries.
+
+⸻
+
+🛠️ Incident Summary: Product ID Refactor, Timeouts, and Resolution
+
+On September 18, 2025, a series of refactors were implemented to correct brittle behavior in the blacklist export system. Key discoveries and fixes:
+
+- The initial blacklist implementation used `barcode` as the unique identifier, which caused issues for products with missing or empty barcodes (e.g., custom prints or used books).
+- Supabase began rejecting entries due to NOT NULL constraints when barcodes were absent.
+- We refactored all logic to prioritize `product_id` as the primary key for blacklist enforcement. Barcodes remain useful as a fallback.
+- Shopify export logic was updated to generate a Liquid snippet with both product IDs and barcodes and to inject it directly into the live `main-product.liquid` template.
+- A sudden surge of 408, 499, and 401 errors led to a discovery that proxy authentication was being incorrectly applied to all routes.
+- We updated `server.js` to apply Basic Auth **only to static frontend content**, while leaving backend `/api` routes publicly accessible.
+- DNS issues were ruled out after confirming correct record resolution.
+- Stability returned after rollback to a stable commit, manual patch restoration, and re-deploy. The Admin Dashboard is now functioning reliably.

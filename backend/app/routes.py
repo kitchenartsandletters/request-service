@@ -33,7 +33,7 @@ class ArchiveBulk(BaseModel):
     reason: str | None = None
 
 class BlacklistEntry(BaseModel):
-    barcode: str
+    barcode: str | None = None
     title: str
     handle: str
     author: str
@@ -77,6 +77,37 @@ async def create_interest(req: Request):
         print("Error inserting interest:", e)
         raise HTTPException(status_code=500, detail="Failed to record interest.")
 
+
+# Helper function to apply archived, collection_filter, and search filters to a Supabase query
+def apply_filters(q, archived_mode, cf, search):
+    # Archived filter
+    if archived_mode == "exclude":
+        q = q.eq("archived", False)
+    elif archived_mode == "only":
+        q = q.eq("archived", True)
+    # else: include (do not filter)
+
+    # Collection filter
+    if cf == "op":
+        q = q.or_(
+            "shopify_collection_handles.ov.{out-of-print-offers,out-of-print-offers-1},shopify_collections.ov.{Out-of-Print Offers,Past Out-of-Print Offers},product_tags.ov.{op,pastop},product_title.ilike.OP:%"
+        )
+    elif cf == "notop":
+        q = q.or_(
+            "and(product_title.not.ilike.OP:%,product_tags.not.ov.{op,pastop}),and(product_title.not.ilike.OP:%,or(product_tags.is.null,product_tags.eq.{}))"
+        )
+    # else: all, no filter
+
+    # Search filter
+    if search is not None and str(search).strip():
+        search_normalized = str(search).strip().lower()
+        like_val = f"%{search_normalized}%"
+        q = q.or_(
+            f"product_title.ilike.{like_val},email.ilike.{like_val},customer_name.ilike.{like_val},cr_id.ilike.{like_val}"
+        )
+    return q
+
+
 @router.get("/interest")
 async def get_interest_entries(
     token: str = "",
@@ -84,8 +115,6 @@ async def get_interest_entries(
     archived: str | None = None,
     page: int = 1,
     limit: int = 100,
-    sort_field: str = "created_at",
-    sort_order: str = "desc"
 ):
     if token != os.getenv("VITE_ADMIN_TOKEN"):
         raise HTTPException(status_code=403, detail="Invalid token")
@@ -109,21 +138,11 @@ async def get_interest_entries(
     range_to = offset + limit - 1
 
     try:
-        # Build base query (apply filters first; order & range last)
-        q = supabase.table("product_interest_requests").select(
-            "id, product_id, product_title, email, customer_name, isbn, cr_id, status, cr_seq, archived, archived_at, created_at, shopify_collection_handles, product_tags, shopify_collections"
-        )
-
-        # Archived mode: exclude (default), include, only
+        # Normalize archived_mode and collection_filter before applying filters
         archived_mode = (archived or "exclude").strip().lower()
         if archived_mode not in {"exclude", "include", "only"}:
             archived_mode = "exclude"
-        if archived_mode == "exclude":
-            q = q.eq("archived", False)
-        elif archived_mode == "only":
-            q = q.eq("archived", True)
 
-        # Normalize: accept "All", "OP"/"Out-of-Print" variants, and "Not OP"
         raw_cf = (collection_filter or "All").strip().lower()
         norm = raw_cf.replace(" ", "-")  # normalize spaces -> hyphen
         if norm in {"op", "out-of-print", "out_of_print"}:
@@ -145,16 +164,8 @@ async def get_interest_entries(
             )
         # else: "all" -> no additional filter
 
-        # Dynamic ordering (full-table sort support)
-        allowed_sort_fields = {
-            "created_at", "product_title", "email", "customer_name", "isbn", "status"
-        }
-        field = sort_field if sort_field in allowed_sort_fields else "created_at"
-        order_desc = sort_order.lower() != "asc"
-        q = q.order(field, desc=order_desc).range(offset, range_to)
-
-        # Previous hardcoded ordering removed
-        # q = q.order("created_at", desc=True).range(offset, range_to)
+        # Finally, apply ordering and range (after all filters)
+        q = q.order("created_at", desc=True).range(offset, range_to)
 
         result = q.execute()
         return {"success": True, "data": result.data}
@@ -263,12 +274,30 @@ async def add_to_blacklist_debug(request: Request, token: str = ""):
 
         parsed_entries = []
         for entry_data in entries:
-            entry = BlacklistEntry(**entry_data)
-            print("✅ Parsed entry:", entry.model_dump())
-            parsed_entries.append(entry.model_dump())
+            try:
+                if "author" not in entry_data or entry_data["author"] is None:
+                    entry_data["author"] = "Unknown"
+                if not entry_data.get("barcode"):
+                    entry_data["barcode"] = ""
+                entry = BlacklistEntry(**entry_data)
+                model = entry.model_dump()
+                # Skip entries with missing product_id
+                if not model.get("product_id"):
+                    print("⚠️ Skipping entry due to missing product_id:", model)
+                    continue
+                parsed_entries.append(model)
+                print("✅ Parsed entry:", model)
+            except Exception as e:
+                print("❌ Failed to parse entry:", entry_data)
+                print("🪵 Exception:", str(e))
+                print("🧪 Types:", {k: type(v) for k, v in entry_data.items()})
+                print("🔍 repr():", repr(entry_data))
 
-        # Bulk upsert
-        supabase.table("blacklisted_barcodes").upsert(parsed_entries).execute()
+        # Bulk upsert with conflict on product_id
+        if not parsed_entries:
+            print("🛑 No valid entries to upsert.")
+            return {"success": False, "message": "No valid entries to add."}
+        supabase.table("blacklisted_barcodes").upsert(parsed_entries, on_conflict="product_id").execute()
         return {"success": True, "count": len(parsed_entries)}
 
     except Exception as e:
@@ -279,16 +308,10 @@ async def add_to_blacklist_debug(request: Request, token: str = ""):
 async def remove_from_blacklist(entry: RemoveEntry, token: str = ""):
     if token != os.getenv("VITE_ADMIN_TOKEN"):
         raise HTTPException(status_code=403, detail="Invalid token")
-    conditions = []
-    if entry.barcode:
-        conditions.append(f"barcode.eq.{entry.barcode}")
-    if entry.product_id is not None:
-        conditions.append(f"product_id.eq.{entry.product_id}")
-    if not conditions:
-        raise HTTPException(status_code=422, detail="Must provide barcode and/or product_id")
-    delete_query = supabase.table("blacklisted_barcodes").delete().or_(
-        ",".join(conditions)
-    )
+    # Only allow deletion by product_id
+    if entry.product_id is None:
+        raise HTTPException(status_code=422, detail="Must provide product_id")
+    delete_query = supabase.table("blacklisted_barcodes").delete().eq("product_id", entry.product_id)
     result = delete_query.execute()
     print("🗑️ Delete result:", result.data)
     return {"success": True}
@@ -299,11 +322,13 @@ async def export_blacklist_snippet(token: str = ""):
         raise HTTPException(status_code=403, detail="Invalid token")
     try:
         sb = supabase
-        response = sb.table("blacklisted_barcodes").select("barcode").execute()
+        response = sb.table("blacklisted_barcodes").select("barcode,product_id").execute()
+        product_ids = [str(row["product_id"]) for row in response.data if row.get("product_id")]
         barcodes = [row["barcode"] for row in response.data if row.get("barcode")]
 
-        csv_string = ",".join(barcodes)
-        snippet = f'{{% assign blacklisted_barcodes = "{csv_string}" | split: "," %}}'
+        id_snippet = f'{{% assign blacklisted_product_ids = "{",".join(product_ids)}" | split: "," %}}'
+        barcode_snippet = f'{{% assign blacklisted_barcodes = "{",".join(barcodes)}" | split: "," %}}'
+        snippet = id_snippet + "\n" + barcode_snippet
 
         # Step 1: Get the MAIN theme ID
         theme_resp = requests.post(
@@ -368,12 +393,20 @@ async def export_blacklist_snippet(token: str = ""):
             raise Exception(f"Failed to fetch main-product.liquid: {fetch_resp.text}")
         content = fetch_resp.json().get("asset", {}).get("value", "")
 
-        # Replace or insert the assign line using regex
-        pattern = r'{%\s*assign\s+blacklisted_barcodes\s*=.*?%}'
-        if re.search(pattern, content):
-            updated_content = re.sub(pattern, snippet, content, count=1)
+        # Replace or insert the assign lines using regex
+        id_pattern = r'{%\s*assign\s+blacklisted_product_ids\s*=.*?%}'
+        barcode_pattern = r'{%\s*assign\s+blacklisted_barcodes\s*=.*?%}'
+
+        updated_content = content
+        if re.search(id_pattern, updated_content):
+            updated_content = re.sub(id_pattern, id_snippet, updated_content, count=1)
         else:
-            updated_content = snippet + "\n" + content
+            updated_content = id_snippet + "\n" + updated_content
+
+        if re.search(barcode_pattern, updated_content):
+            updated_content = re.sub(barcode_pattern, barcode_snippet, updated_content, count=1)
+        else:
+            updated_content = barcode_snippet + "\n" + updated_content
 
         # Upload updated main-product.liquid
         upload_main_resp = requests.put(
@@ -394,6 +427,7 @@ async def export_blacklist_snippet(token: str = ""):
 
         sb.table("blacklist_snippet_logs").insert({
             "barcodes": barcodes,
+            "product_ids": product_ids,
             "exported_at": datetime.utcnow().isoformat()
         }).execute()
 
