@@ -175,7 +175,10 @@ def record_signed_copy_response(row: Dict[str, Any]) -> Dict[str, Any]:
         .execute()
 
     if existing.data:
-        return existing.data[0]
+        return {
+            "status": "already_recorded",
+            "row": existing.data[0]
+        }
 
     try:
         inserted = supabase.table("signed_copy_responses") \
@@ -185,7 +188,10 @@ def record_signed_copy_response(row: Dict[str, Any]) -> Dict[str, Any]:
         if not inserted.data:
             raise Exception("Failed to insert signed_copy_responses row")
 
-        return inserted.data[0]
+        return {
+            "status": "recorded",
+            "row": inserted.data[0]
+        }
 
     except Exception:
         # If insert failed (likely due to unique constraint),

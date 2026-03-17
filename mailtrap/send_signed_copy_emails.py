@@ -69,7 +69,7 @@ def run(dry_run=False):
             continue
 
         send_mailtrap_email(
-            subject="Quick question about your preorder",
+            subject="Quick question about your preorder for The Noma Guide to Building Flavour",
             html_body=html,
             to_email=row["email"]
         )

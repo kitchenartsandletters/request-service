@@ -52,32 +52,36 @@ def build_signed_copy_email(row: dict, token: str) -> str:
               <tr>
                 <td style="padding-bottom: 12px;">
                   <a href="{link('keep')}" style="display: block; background-color: {brand_blue}; color: #ffffff; padding: 14px 20px; text-decoration: none; text-align: center; border-radius: 4px; font-weight: bold; font-size: 15px;">
-                    Keep my order (signed copy)
+                    Keep your order as-is for a signed copy (which will come to us already signed)
                   </a>
                 </td>
               </tr>
               <tr>
                 <td style="padding-bottom: 12px;">
                   <a href="{link('unsigned')}" style="display: block; background-color: {brand_blue}; color: #ffffff; padding: 14px 20px; text-decoration: none; text-align: center; border-radius: 4px; font-weight: bold; font-size: 15px;">
-                    Send me an unsigned copy
+                    Switch to an unsigned copy
                   </a>
                 </td>
               </tr>
               <tr>
                 <td>
                   <a href="{link('cancel')}" style="display: block; background-color: {light_grey}; color: {text_black}; padding: 14px 20px; text-decoration: none; text-align: center; border-radius: 4px; font-size: 15px; border: 1px solid #d1d1d1;">
-                    Cancel my order for a full refund
+                    Cancel your order for a full refund of the book and any shipping costs
                   </a>
                 </td>
               </tr>
             </table>
 
             <p style="font-size: 14px; color: #666666; font-style: italic; margin-top: 30px;">
-              If we don’t hear from you by March 20, we’ll proceed with your signed copy.
+              There's no wrong answer. If you cancel, you'll receive a complete refund and you're welcome to keep any rewards points you earned on the preorder.
+            </p>
+
+            <p style="font-size: 14px; color: #666666; font-style: italic; margin-top: 15px;">
+              If we don't hear from you by midnight on Friday, March 20, we'll take that as a sign you'd like to proceed with your signed copy and fulfill your order accordingly.
             </p>
 
             <p style="margin-bottom: 0;">
-              Thank you for being a Kitchen Arts & Letters customer.
+              Thank you for being a Kitchen Arts & Letters customer. I don't take that for granted.
             </p>
 
           </td>
