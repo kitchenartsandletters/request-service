@@ -72,11 +72,11 @@ def build_signed_copy_email(row: dict, token: str) -> str:
               </tr>
             </table>
 
-            <p style="font-size: 14px; color: #666666; font-style: italic; margin-top: 30px;">
+            <p>
               There's no wrong answer. If you cancel, you'll receive a complete refund and you're welcome to keep any rewards points you earned on the preorder.
             </p>
 
-            <p style="font-size: 14px; color: #666666; font-style: italic; margin-top: 15px;">
+            <p>
               If we don't hear from you by midnight on Friday, March 20, we'll take that as a sign you'd like to proceed with your signed copy and fulfill your order accordingly.
             </p>
 
