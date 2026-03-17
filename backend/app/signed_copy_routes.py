@@ -3,7 +3,7 @@ import jwt
 import os
 import time
 
-from supabase_client import record_signed_copy_response
+from app.supabase_client import record_signed_copy_response
 
 router = APIRouter()
 
