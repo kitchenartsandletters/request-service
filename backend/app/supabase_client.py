@@ -18,6 +18,34 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+
+# --- Product Interest Request helpers ---
+def insert_interest(data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Existing request-service compatibility function.
+    Inserts a row into product_interest_requests.
+    """
+    inserted = supabase.table("product_interest_requests") \
+        .insert(data) \
+        .execute()
+
+    if not inserted.data:
+        raise Exception("Failed to insert interest request")
+
+    return inserted.data[0]
+
+
+def update_status(record_id: str, status: str) -> Dict[str, Any]:
+    updated = supabase.table("product_interest_requests") \
+        .update({"status": status}) \
+        .eq("id", record_id) \
+        .execute()
+
+    if not updated.data:
+        raise Exception("Failed to update status")
+
+    return updated.data[0]
+
 def shopify_graphql(query: str, variables: dict | None = None) -> dict:
     if not SHOP_URL or not SHOPIFY_ACCESS_TOKEN:
         raise Exception("Missing Shopify credentials")
