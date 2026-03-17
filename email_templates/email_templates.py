@@ -43,7 +43,7 @@ def build_signed_copy_email(row: dict, token: str) -> str:
 
             <p>
               I'd rather know if your feelings about the book have changed than have you receive something you wish 
-              you hadn't ordered. That's why I’m writing to every preorder customer individually.
+              you hadn't ordered. That's why I’m writing to everyone who preordered.
             </p>
 
             <p style="font-weight: bold; margin-top: 25px;">Please choose one of the options below:</p>
@@ -64,8 +64,8 @@ def build_signed_copy_email(row: dict, token: str) -> str:
                 </td>
               </tr>
               <tr>
-                <td>
-                  <a href="{link('cancel')}" style="display: block; background-color: {light_grey}; color: {text_black}; padding: 14px 20px; text-decoration: none; text-align: center; border-radius: 4px; font-size: 15px; border: 1px solid #d1d1d1;">
+                <td style="padding-bottom: 12px;">
+                  <a href="{link('cancel')}" style="display: block; background-color: {brand_blue}; color: #ffffff; padding: 14px 20px; text-decoration: none; text-align: center; border-radius: 4px; font-weight: bold; font-size: 15px;">
                     Cancel your order for a full refund of the book and any shipping costs
                   </a>
                 </td>
