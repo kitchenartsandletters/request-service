@@ -177,15 +177,29 @@ def record_signed_copy_response(row: Dict[str, Any]) -> Dict[str, Any]:
     if existing.data:
         return existing.data[0]
 
-    inserted = supabase.table("signed_copy_responses") \
-        .insert(row) \
-        .execute()
+    try:
+        inserted = supabase.table("signed_copy_responses") \
+            .insert(row) \
+            .execute()
 
-    if not inserted.data:
-        raise Exception("Failed to insert signed_copy_responses row")
-    
+        if not inserted.data:
+            raise Exception("Failed to insert signed_copy_responses row")
 
-    return inserted.data[0]
+        return inserted.data[0]
+
+    except Exception:
+        # If insert failed (likely due to unique constraint),
+        # fetch the existing row instead of crashing
+        retry = supabase.table("signed_copy_responses") \
+            .select("*") \
+            .eq("token_jti", row["token_jti"]) \
+            .limit(1) \
+            .execute()
+
+        if retry.data:
+            return retry.data[0]
+
+        raise
 
 def enrich_signed_copy_response(saved_row: Dict[str, Any]) -> Dict[str, Any]:
     email = saved_row["email"]

@@ -49,6 +49,7 @@ async def respond(payload: dict):
 
         # metadata
         "raw_token_payload": decoded,
+        "campaign_key": decoded.get("campaign_key"),
         "recorded_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     }
 
@@ -57,6 +58,16 @@ async def respond(payload: dict):
 
     print(f"[SIGNED COPY] {row['email']} → {row['response']}")
 
-    saved = record_signed_copy_response(row)
+    result = record_signed_copy_response(row)
 
-    return {"success": True, "id": saved["id"]}
+    # handle new vs already recorded
+    if isinstance(result, dict) and "status" in result:
+        row_data = result.get("row", {})
+        return {
+            "status": result["status"],
+            "id": row_data.get("id") or result.get("id"),
+            "original_response": row_data.get("response")
+        }
+
+    # fallback (legacy behavior)
+    return {"status": "recorded", "id": result["id"]}
