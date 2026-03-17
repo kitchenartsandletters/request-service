@@ -183,6 +183,7 @@ def record_signed_copy_response(row: Dict[str, Any]) -> Dict[str, Any]:
 
     if not inserted.data:
         raise Exception("Failed to insert signed_copy_responses row")
+    
 
     return inserted.data[0]
 

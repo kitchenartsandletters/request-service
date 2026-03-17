@@ -32,15 +32,28 @@ async def respond(payload: dict):
         "token_jti": decoded["jti"],
         "email": decoded["email"],
         "token_email": decoded["email"],
+
+        # product
         "token_product_id": decoded["product_id"],
-        "response": VALID[response],
         "product_id": decoded["product_id"],
         "product_title": decoded.get("product_title"),
+
+        # NEW: deterministic order linkage (from token)
         "order_id": decoded.get("order_id"),
         "order_name": decoded.get("order_name"),
+        "line_item_id": decoded.get("line_item_id"),
+        "customer_id": decoded.get("customer_id"),
+
+        # response
+        "response": VALID[response],
+
+        # metadata
         "raw_token_payload": decoded,
         "recorded_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     }
+
+    if not row.get("order_id") or not row.get("line_item_id"):
+        raise HTTPException(400, "Token missing order linkage")
 
     print(f"[SIGNED COPY] {row['email']} → {row['response']}")
 
