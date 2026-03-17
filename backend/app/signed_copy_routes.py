@@ -31,6 +31,7 @@ async def respond(payload: dict):
     row = {
         "token_jti": decoded["jti"],
         "email": decoded["email"],
+        "token_email": decoded["email"],
         "response": VALID[response],
         "product_id": decoded["product_id"],
         "product_title": decoded.get("product_title"),
