@@ -1,5 +1,5 @@
 def build_signed_copy_email(row: dict, token: str) -> str:
-    first_name = row.get("first_name") or ""
+    first_name = (row.get("first_name") or "").strip()
     greeting = f"Dear {first_name}," if first_name else "Hello,"
     
     brand_blue = "#00008f"

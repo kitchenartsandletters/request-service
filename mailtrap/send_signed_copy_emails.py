@@ -1,7 +1,6 @@
 import os
 import logging
 import requests
-import base64
 from datetime import datetime
 
 from dotenv import load_dotenv
@@ -44,7 +43,7 @@ def send_mailtrap_email(subject, html_body, to_email):
 
     res = requests.post(MAILTRAP_URL, headers=headers, json=payload)
 
-    if res.status_code != 200:
+    if res.status_code not in (200, 202):
         logging.error(res.text)
         raise RuntimeError("Mailtrap send failed")
 
@@ -57,35 +56,65 @@ def run(dry_run=False):
 
     print(f"Found {len(rows)} recipients")
 
+    if not rows:
+        print("No recipients to send.")
+        return
+
     print("SUPABASE URL:", os.getenv("SUPABASE_URL"))
 
     for row in rows:
         print("ROW BEING USED:", row)
-        token = generate_signed_copy_token(row)
-        html = build_signed_copy_email(row, token)
 
-        if dry_run:
-            print(f"[DRY RUN] Would send to {row['email']}")
-            continue
+        try:
+            token = generate_signed_copy_token(row)
+            html = build_signed_copy_email(row, token)
 
-        send_mailtrap_email(
-            subject="Quick question about your preorder for The Noma Guide to Building Flavour",
-            html_body=html,
-            to_email=row["email"]
-        )
+            if dry_run:
+                print(f"[DRY RUN] Would send to {row['email']}")
+                continue
 
-        supabase.table("signed_copy_campaign_recipients") \
-            .update({
-                "email_sent": True,
-                "email_sent_at": datetime.utcnow().isoformat(),
-                "token": token,
-                "token_generated_at": datetime.utcnow().isoformat()
-            }) \
-            .eq("id", row["id"]) \
-            .execute()
+            # 1️⃣ SEND EMAIL FIRST
+            send_mailtrap_email(
+                subject="Quick question about your preorder for The Noma Guide to Building Flavour",
+                html_body=html,
+                to_email=row["email"]
+            )
 
-        print(f"Sent → {row['email']}")
+            now = datetime.utcnow().isoformat()
 
+            # 2️⃣ UPDATE RECIPIENT (separate failure boundary)
+            supabase.table("signed_copy_campaign_recipients") \
+                .update({
+                    "email_sent": True,
+                    "email_sent_at": now,
+                    "token": token,
+                    "token_generated_at": now
+                }) \
+                .eq("id", row["id"]).eq("email_sent", False) \
+                .execute()
+
+            # 3️⃣ LOG SUCCESS
+            supabase.table("email_log").insert({
+                "request_id": row["id"],
+                "email": row["email"],
+                "status": "sent",
+                "sent_at": now
+            }).execute()
+
+            print(f"Sent → {row['email']}")
+
+        except Exception as e:
+            error_msg = str(e)
+            logging.error(f"FAILED → {row['email']} → {error_msg}")
+
+            # ❌ failure log
+            supabase.table("email_log").insert({
+                "request_id": row["id"],
+                "email": row["email"],
+                "status": "failed",
+                "error": error_msg,
+                "sent_at": datetime.utcnow().isoformat()
+            }).execute()
 
 if __name__ == "__main__":
     import argparse
