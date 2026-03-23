@@ -17,6 +17,15 @@ VALID = {
 
 @router.post("/signed-copy/respond")
 async def respond(payload: dict):
+
+    CAMPAIGN_ACTIVE = os.getenv("SIGNED_COPY_CAMPAIGN_ACTIVE", "true").lower() == "true"
+
+    if not CAMPAIGN_ACTIVE:
+        return {
+            "status": "closed",
+            "message": "campaign_closed"
+        }
+
     token = payload.get("token")
     response = payload.get("response")
 
